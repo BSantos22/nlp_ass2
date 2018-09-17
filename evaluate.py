@@ -49,7 +49,7 @@ totalNumWordsP = 0
 totalNumWordsN = 0
 totalNumWords = 0
 
-uniqueNGrams = [set(), set(), set()]  # ngram
+uniqueNGrams = [[set(),set()], [set(),set()], [set(),set()]]  # ngram
 
 
 positiveProbabilities = {}
@@ -75,7 +75,10 @@ for filename in os.listdir("train/"):
         for x in range(1, maxNGram+1):
             grams = nltk.ngrams(tokens, x)
             for gram in grams:
-                uniqueNGrams[x-1].add(gram)
+                if "P" in filename:
+                    uniqueNGrams[x-1][0].add(gram)
+                else:
+                    uniqueNGrams[x-1][1].add(gram)
 # Only keep tokens that occur at least 25 times (Task 4)
 for tc in tokenCount:
     if tokenCount[tc][0]+tokenCount[tc][1] >= minCount:
@@ -90,7 +93,7 @@ for tok in popTokens:
 totalNumWords = totalNumWordsP + totalNumWordsN
 
 for x in range(len(uniqueNGrams)):
-    print(str(x+1)+"-grams: " + str(len(uniqueNGrams[x])))
+    print(str(x+1)+"-grams: " + str(len(uniqueNGrams[x][0])+len(uniqueNGrams[x][1])))
 print(sortedTokens)
 print("Top 10 words:")
 for x in range(10):
@@ -102,6 +105,12 @@ for tc in tokenCount:
         print(tc + ": " + str(tokenCount[tc]))
 '''
 
+
+# Task 6
+def probabilityOfWGivenReviewsBi(word, reviewType):
+    if reviewType == 'P':
+        return (popTokens[word][0] + k_smoothing) / (totalNumWordsP + k_smoothing * totalNumWords)
+    return (popTokens[word][1] + k_smoothing) / (totalNumWordsN + k_smoothing * totalNumWords)
 
 # Task 5
 def probabilityOfWGivenReviews(word, reviewType):
