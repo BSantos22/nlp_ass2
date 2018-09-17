@@ -56,3 +56,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+idea/
+train/
+test/
+aclImdb/
+venv/
