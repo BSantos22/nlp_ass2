@@ -31,6 +31,7 @@ def read_predictions(filename):
 def normalize(text):
     return text.lower().replace(unwanted, "")
 
+k_smoothing = 1
 
 # Read in arguments
 ground_truth_file = sys.argv[1]
@@ -46,6 +47,7 @@ maxNGram = 3
 
 totalNumWordsP = 0
 totalNumWordsN = 0
+totalNumWords = 0
 
 uniqueNGrams = [set(), set(), set()]  # ngram
 
@@ -62,10 +64,6 @@ for filename in os.listdir("train/"):
         for unwanted in unwantedTokens:
             review = normalize(review)
         tokens = nltk.word_tokenize(review)
-        if "P" in filename:
-            totalNumWordsP += len(tokens)
-        else:
-            totalNumWordsN += len(tokens)
         for tok in tokens:
             if tok not in tokenCount:
                 tokenCount[tok] = [0, 0]
@@ -78,12 +76,18 @@ for filename in os.listdir("train/"):
             grams = nltk.ngrams(tokens, x)
             for gram in grams:
                 uniqueNGrams[x-1].add(gram)
-
 # Only keep tokens that occur at least 25 times (Task 4)
 for tc in tokenCount:
     if tokenCount[tc][0]+tokenCount[tc][1] >= minCount:
         popTokens[tc] = tokenCount[tc]
 sortedTokens = sorted(popTokens.items(), key=operator.itemgetter(1), reverse=True)
+
+
+for tok in popTokens:
+    totalNumWordsP += popTokens[tok][0]
+    totalNumWordsN += popTokens[tok][1]
+
+totalNumWords = totalNumWordsP + totalNumWordsN
 
 for x in range(len(uniqueNGrams)):
     print(str(x+1)+"-grams: " + str(len(uniqueNGrams[x])))
@@ -100,19 +104,19 @@ for tc in tokenCount:
 
 
 # Task 5
-def probabilityOfWGivenReviews(word, reviewType, totalNumWords):
+def probabilityOfWGivenReviews(word, reviewType):
     if reviewType == 'P':
-        return popTokens[word][0] / totalNumWordsP
-    return popTokens[word][1] / totalNumWordsN
+        return (popTokens[word][0] + k_smoothing) / (totalNumWordsP + k_smoothing * totalNumWords)
+    return (popTokens[word][1] + k_smoothing) / (totalNumWordsN + k_smoothing * totalNumWords)
 
 
 p = []
 for token in sortedTokens:
-    p = probabilityOfWGivenReviews(token[0], 'P', totalNumWordsP)
+    p = probabilityOfWGivenReviews(token[0], 'P')
     if p != 0:
         positiveProbabilities[token[0]] = p
 
-    p = probabilityOfWGivenReviews(token[0], 'N', totalNumWordsN)
+    p = probabilityOfWGivenReviews(token[0], 'N')
     if p != 0:
         negativeProbabilities[token[0]] = p
 
@@ -145,7 +149,6 @@ for filename in os.listdir("test/"):
 open(results_file, 'w').writelines(preds)
 
 results_map = read_predictions(results_file)
-print(results_map)
 ground_truth_map = read_predictions(ground_truth_file)
 
 # Calculate accuracy and print incorrect predictions
