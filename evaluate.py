@@ -31,7 +31,8 @@ def read_predictions(filename):
 def normalize(text):
     return text.lower().replace(unwanted, "")
 
-k_smoothing = 1
+
+k_smoothing = 0.37
 
 # Read in arguments
 ground_truth_file = sys.argv[1]
@@ -50,7 +51,7 @@ totalNumWordsN = 0
 totalNumWords = 0
 
 uniqueNGrams = [[set(),set()], [set(),set()], [set(),set()]]  # ngram
-
+bigramCount = {[]}
 
 positiveProbabilities = {}
 negativeProbabilities = {}
@@ -74,6 +75,17 @@ for filename in os.listdir("train/"):
 
         for x in range(1, maxNGram+1):
             grams = nltk.ngrams(tokens, x)
+
+            if x == 2:
+                for gram in grams:
+                    if gram not in bigramCount:
+                        bigramCount[gram] = [0, 0]
+
+                    if 'P' in filename:
+                        bigramCount[gram][0] += 1
+                    if 'N' in filename:
+                        bigramCount[gram][1] += 1
+
             for gram in grams:
                 if "P" in filename:
                     uniqueNGrams[x-1][0].add(gram)
@@ -106,12 +118,6 @@ for tc in tokenCount:
 '''
 
 
-# Task 6
-def probabilityOfWGivenReviewsBi(word, reviewType):
-    if reviewType == 'P':
-        return (popTokens[word][0] + k_smoothing) / (totalNumWordsP + k_smoothing * totalNumWords)
-    return (popTokens[word][1] + k_smoothing) / (totalNumWordsN + k_smoothing * totalNumWords)
-
 # Task 5
 def probabilityOfWGivenReviews(word, reviewType):
     if reviewType == 'P':
@@ -137,17 +143,25 @@ print("negative probs:")
 print(negativeProbabilities)
 
 preds = []
-
 for filename in os.listdir("test/"):
     probs = [0.0, 0.0]  # p,n
     with open("test/" + filename, 'r') as myfile:
         reviewText = normalize(myfile.read())
         tks = nltk.word_tokenize(reviewText)
+        grms = nltk.ngrams(tks, 2)
+
         for t in tks:
             if t in positiveProbabilities:
                 probs[0] += math.log(positiveProbabilities[t])
             if t in negativeProbabilities:
                 probs[1] += math.log(negativeProbabilities[t])
+
+        '''
+        for t in tks:
+            if t in positiveProbabilities:
+                probs[0] += math.log(positiveProbabilities[t])
+            if t in negativeProbabilities:
+                probs[1] += math.log(negativeProbabilities[t])'''
     if probs[0] < probs[1]:
         dclass = "N"
     else:
