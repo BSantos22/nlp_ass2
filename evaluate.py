@@ -16,6 +16,7 @@ import sys
 import nltk
 import os
 import operator
+import math
 
 def read_predictions(filename):
     """ Read predictions into dictionary"""
@@ -67,9 +68,11 @@ for filename in os.listdir("train/"):
             totalNumWordsN += len(tokens)
         for tok in tokens:
             if tok not in tokenCount:
-                tokenCount[tok] = 1
+                tokenCount[tok] = [0, 0]
+            if "P" in filename:
+                tokenCount[tok][0] += 1
             else:
-                tokenCount[tok] += 1
+                tokenCount[tok][1] += 1
 
         for x in range(1, maxNGram+1):
             grams = nltk.ngrams(tokens, x)
@@ -78,7 +81,7 @@ for filename in os.listdir("train/"):
 
 # Only keep tokens that occur at least 25 times (Task 4)
 for tc in tokenCount:
-    if tokenCount[tc] >= minCount:
+    if tokenCount[tc][0]+tokenCount[tc][1] >= minCount:
         popTokens[tc] = tokenCount[tc]
 sortedTokens = sorted(popTokens.items(), key=operator.itemgetter(1), reverse=True)
 
@@ -88,56 +91,61 @@ for x in range(len(uniqueNGrams)):
 print("Top 10 words:")
 for x in range(10):
     print(sortedTokens[x])
-
+'''
 print("Rare words:")
 for tc in tokenCount:
     if tokenCount[tc] < 5:
         print(tc + ": " + str(tokenCount[tc]))
+'''
 
 
 # Task 5
-def probabilityOfWGivenReviews(word, reviews, totalNumWords):
-    frequency = 0
-    for r in reviews:
-        reviewText = normalize(open("train/" + r, 'r').read())
-        frequency += reviewText.count(word)
-    prob = 0.0 + frequency / totalNumWords
-    return prob
+def probabilityOfWGivenReviews(word, reviewType, totalNumWords):
+    if reviewType == 'P':
+        return popTokens[word][0] / totalNumWordsP
+    return popTokens[word][1] / totalNumWordsN
 
 
+p = []
 for token in sortedTokens:
-    p = probabilityOfWGivenReviews(token[0], posReviews, totalNumWordsP)
+    p = probabilityOfWGivenReviews(token[0], 'P', totalNumWordsP)
     if p != 0:
         positiveProbabilities[token[0]] = p
 
-for token in sortedTokens:
-    p = probabilityOfWGivenReviews(token[0], negReviews, totalNumWordsN)
+    p = probabilityOfWGivenReviews(token[0], 'N', totalNumWordsN)
     if p != 0:
         negativeProbabilities[token[0]] = p
 
+print("total #words p: "+str(totalNumWordsP))
+print("total #words n: "+str(totalNumWordsN))
 print("positive probs:")
 print(positiveProbabilities)
 print("negative probs:")
 print(negativeProbabilities)
+
+preds = []
+
 for filename in os.listdir("test/"):
-    probs = [1.0, 1.0] # p,n
+    probs = [0.0, 0.0]  # p,n
     with open("test/" + filename, 'r') as myfile:
         reviewText = normalize(myfile.read())
         tks = nltk.word_tokenize(reviewText)
         for t in tks:
             if t in positiveProbabilities:
-                probs[0] *= positiveProbabilities[t]
+                probs[0] += math.log(positiveProbabilities[t])
             if t in negativeProbabilities:
-                probs[1] *= negativeProbabilities[t]
+                probs[1] += math.log(negativeProbabilities[t])
     if probs[0] < probs[1]:
         dclass = "N"
     else:
         dclass = "P"
-
+    preds.append(filename.replace(".txt","")+"\t"+dclass+"\n")
     print("For "+filename+": " + str(probs)+" -> " + dclass)
 
+open(results_file, 'w').writelines(preds)
 
 results_map = read_predictions(results_file)
+print(results_map)
 ground_truth_map = read_predictions(ground_truth_file)
 
 # Calculate accuracy and print incorrect predictions
