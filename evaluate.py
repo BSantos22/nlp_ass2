@@ -58,6 +58,18 @@ negativeProbabilities = {}
 posReviews = [fi for fi in os.listdir("train/") if "P" in fi]
 negReviews = [fi for fi in os.listdir("train/") if "N" in fi]
 
+'''
+The used tokenizer removes the following unwanted characters: ",", ".", ":" and ";" and replaces all uppercase letters with lowercase ones.
+We then use the NLTK word tokenizer, which creates tokens by separating the text by spaces. It also separates contractions like "n't" from the associated verb (ex: "didn't" becomes "did" and "n't").
+Phrases:
+I happened to leave HBO on last night following Six Feet Under.
+['i', 'happened', 'to', 'leave', 'hbo', 'on', 'last', 'night', 'following', 'six', 'feet', 'under']
+In listening to recent blogtalkradio show called the AARF show(Robert Morgan is a co-host)he tells that because it has become such a cult classic and does well at movie conventions and such,there are plans to maybe do a sequel to this film.
+['in', 'listening', 'to', 'recent', 'blogtalkradio', 'show', 'called', 'the', 'aarf', 'show', '(', 'robert', 'morgan', 'is', 'a', 'co-host', ')', 'he', 'tells', 'that', 'because', 'it', 'has', 'become', 'such', 'a', 'cult', 'classic', 'and', 'does', 'well', 'at', 'movie', 'conventions', 'and', 'suchthere', 'are', 'plans', 'to', 'maybe', 'do', 'a', 'sequel', 'to', 'this', 'film']
+Not since "It's a Mad, Mad, Mad, Mad World" has the cameo formula been used so prolifically and successfully.
+['not', 'since', '``', 'it', "'s", 'a', 'mad', 'mad', 'mad', 'mad', 'world', "''", 'has', 'the', 'cameo', 'formula', 'been', 'used', 'so', 'prolifically', 'and', 'successfully', 'the', 'aspiring', 'stars', 'encounter', 'many', 'recognizable', 'faces', 'during', 'their', 'odyssey', 'some', 'just', 'blink', 'across']
+'''
+
 # Tokenizing (Task 4), count unique n-grams for n=1,2,3, count tokens
 for filename in os.listdir("train/"):
     with open("train/" + filename, 'r') as myfile:
@@ -65,6 +77,8 @@ for filename in os.listdir("train/"):
         for unwanted in unwantedTokens:
             review = normalize(review)
         tokens = nltk.word_tokenize(review)
+        print(filename)
+        print(tokens)
         for tok in tokens:
             if tok not in tokenCount:
                 tokenCount[tok] = [0, 0]
@@ -103,6 +117,11 @@ for tc in tokenCount:
         print(tc + ": " + str(tokenCount[tc]))
 '''
 
+'''
+
+
+
+'''
 
 # Task 5
 def probabilityOfWGivenReviews(word, reviewType):
@@ -193,8 +212,6 @@ for i in range (0, 5):
     nstr = ''
     for word in negative:
         print('\t' + word[0] + ' - ' + str(round(1/word[1], 3)))
-    print(pstr)
-    print(nstr)
     minCount = minCount + step
 
 '''
