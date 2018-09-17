@@ -12,6 +12,7 @@ they're less significant
 '''
 
 from __future__ import print_function
+from operator import itemgetter
 import sys
 import nltk
 import os
@@ -165,3 +166,28 @@ for ID in ground_truth_map:
 # Print summary
 print(str(correct) + " out of " + str(len(ground_truth_map)) + " were correct!")
 print("accuracy " + str(float(correct)/len(ground_truth_map)))
+
+print("")
+print("")
+print("=======================================================================")
+print("")
+print("")
+
+step = 15
+for i in range (0, 5):
+    minCount = minCount + i * step
+    print('\nThreshold: ' + str(minCount))
+    characteristic_words = []
+    for word in popTokens:
+        if (popTokens[word][0] + popTokens[word][1] >= minCount):
+            p = probabilityOfWGivenReviews(word, 'P')
+            n = probabilityOfWGivenReviews(word, 'n')
+            characteristic_words.append((word, p/n))
+    positive = sorted(characteristic_words, key=itemgetter(1), reverse=True)[:10]
+    negative = sorted(characteristic_words, key=itemgetter(1))[:10]
+    print ('- Characteristic words of positive reviews')
+    for word in positive:
+        print('\t' + word[0] + ' - ' + str(round(word[1], 3)))
+    print ('- Characteristic words of negative reviews')
+    for word in negative:
+        print('\t' + word[0] + ' - ' + str(round(1/word[1], 3)))
