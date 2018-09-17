@@ -170,12 +170,12 @@ print("accuracy " + str(float(correct)/len(ground_truth_map)))
 print("")
 print("")
 print("=======================================================================")
+print("Task 6")
 print("")
 print("")
 
-step = 15
+step = 25
 for i in range (0, 5):
-    minCount = minCount + i * step
     print('\nThreshold: ' + str(minCount))
     characteristic_words = []
     for word in popTokens:
@@ -186,8 +186,39 @@ for i in range (0, 5):
     positive = sorted(characteristic_words, key=itemgetter(1), reverse=True)[:10]
     negative = sorted(characteristic_words, key=itemgetter(1))[:10]
     print ('- Characteristic words of positive reviews')
+    pstr = ''
     for word in positive:
         print('\t' + word[0] + ' - ' + str(round(word[1], 3)))
     print ('- Characteristic words of negative reviews')
+    nstr = ''
     for word in negative:
         print('\t' + word[0] + ' - ' + str(round(1/word[1], 3)))
+    print(pstr)
+    print(nstr)
+    minCount = minCount + step
+
+'''
+The experiment was repeat 5 times, starting with a threshold of 25, and increasing it by 25 each iteration.
+
+The results were as follows:
+25
+Positive - (bruno,muppet,kurtz,kermit,willard,granger,muppets,brynner,mario,anthony)
+Negative - (aztec,robot,heist,awful,julie,mummy,ocean,armored,waste,budget)
+50
+Positive - (bruno,muppet,kurtz,kermit,walker,hitchcock,excellent,game,murder,train)
+Negative - (mummy,house,worst,money,boring,bad,minutes,nothing,no,trying)
+75
+Positive - (bruno,hitchcock,mother,war,wife,performance,best,great,show,guy)
+Negative - (bad,minutes,no,looking,plot,even,?,then,thought,do)
+100
+Positive - (bruno,hitchcock,war,best,great,show,guy,still,most,us)
+Negative - (bad,no,plot,even,?,then,do,horror,watching,why)
+125
+Positive - (war,best,great,guy,most,also,love,now,many,man)
+Negative - (bad,no,plot,even,?,then,do,horror,only,n't)
+
+As it was to be expected, when the threshold is too small a lot of rare words appear at the top, which don't really give any insight on what's positive or negative.
+When the threshold increases, we begin to see the emergence of adjectives such as 'excellent', 'best' and 'great' for the positive reviews and 'worst', 'boring' and 'bad' for the negative ones.
+It's also interesting to note that even at higher thresholds words such as 'hitchcock' and 'war' continue to appear highly rated on positive reviews, and 'horror' appears on negative reviews.
+This could either mean that reviewers prefer these kind of movies, or point at the general quality of genres/director.
+'''
