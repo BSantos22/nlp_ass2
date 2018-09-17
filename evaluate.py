@@ -91,7 +91,7 @@ totalNumWords = totalNumWordsP + totalNumWordsN
 
 for x in range(len(uniqueNGrams)):
     print(str(x+1)+"-grams: " + str(len(uniqueNGrams[x])))
-
+print(sortedTokens)
 print("Top 10 words:")
 for x in range(10):
     print(sortedTokens[x])
