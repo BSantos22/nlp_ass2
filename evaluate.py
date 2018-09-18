@@ -14,6 +14,7 @@ they're less significant
 from __future__ import print_function
 import sys
 import nltk
+from operator import itemgetter
 import os
 import operator
 import math
@@ -36,8 +37,9 @@ def normalize(text):
 
 ground_truth_file = sys.argv[1]
 results_file = sys.argv[2]
+classificationModel = sys.argv[3]
 
-unwantedTokens = [',','.',':',';']
+unwantedTokens = [',', '.', ':', ';']
 minCount = 25
 
 tokenCount = {}
@@ -60,6 +62,18 @@ negativeProbabilities = {}                                      # dict key = tok
 
 positiveProbabilitiesG = {}                                     # dict key = bigram, value = probability
 negativeProbabilitiesG = {}                                     # dict key = bigram, value = probability
+
+'''
+The used tokenizer removes the following unwanted characters: ",", ".", ":" and ";" and replaces all uppercase letters with lowercase ones.
+We then use the NLTK word tokenizer, which creates tokens by separating the text by spaces. It also separates contractions like "n't" from the associated verb (ex: "didn't" becomes "did" and "n't").
+Phrases:
+I happened to leave HBO on last night following Six Feet Under.
+['i', 'happened', 'to', 'leave', 'hbo', 'on', 'last', 'night', 'following', 'six', 'feet', 'under']
+In listening to recent blogtalkradio show called the AARF show(Robert Morgan is a co-host)he tells that because it has become such a cult classic and does well at movie conventions and such,there are plans to maybe do a sequel to this film.
+['in', 'listening', 'to', 'recent', 'blogtalkradio', 'show', 'called', 'the', 'aarf', 'show', '(', 'robert', 'morgan', 'is', 'a', 'co-host', ')', 'he', 'tells', 'that', 'because', 'it', 'has', 'become', 'such', 'a', 'cult', 'classic', 'and', 'does', 'well', 'at', 'movie', 'conventions', 'and', 'suchthere', 'are', 'plans', 'to', 'maybe', 'do', 'a', 'sequel', 'to', 'this', 'film']
+Not since "It's a Mad, Mad, Mad, Mad World" has the cameo formula been used so prolifically and successfully.
+['not', 'since', '``', 'it', "'s", 'a', 'mad', 'mad', 'mad', 'mad', 'world', "''", 'has', 'the', 'cameo', 'formula', 'been', 'used', 'so', 'prolifically', 'and', 'successfully', 'the', 'aspiring', 'stars', 'encounter', 'many', 'recognizable', 'faces', 'during', 'their', 'odyssey', 'some', 'just', 'blink', 'across']
+'''
 
 # Tokenizing (Task 4), count unique n-grams for n=1,2,3, count tokens
 for filename in os.listdir("train/"):                           # go through training set
@@ -202,8 +216,10 @@ for filename in os.listdir("test/"):                        # predict for each t
         reviewText = normalize(myfile.read())
         tks = nltk.word_tokenize(reviewText)
 
-        #probs = classifyTask7(tks)
-        probs = classifyTask5(tks)
+        if classificationModel == "task7":
+            probs = classifyTask7(tks)
+        else:
+            probs = classifyTask5(tks)
 
     if probs[0] < probs[1]:
         dclass = "N"
@@ -232,3 +248,55 @@ for ID in ground_truth_map:
 acc = float(correct)/len(ground_truth_map)
 summary = str(correct) + " out of " + str(len(ground_truth_map)) + " were correct!\naccuracy " + str(acc)+"\n"
 print(summary)
+
+print("")
+print("")
+print("=======================================================================")
+print("Task 6")
+print("")
+print("")
+
+step = 25
+for i in range (0, 5):
+    print('\nThreshold: ' + str(minCount))
+    characteristic_words = []
+    for word in popularTokens:
+        if (popularTokens[word][0] + popularTokens[word][1] >= minCount):
+            p = probabilityOfWGivenReviews(word, 'P')
+            n = probabilityOfWGivenReviews(word, 'n')
+            characteristic_words.append((word, p/n))
+    positive = sorted(characteristic_words, key=itemgetter(1), reverse=True)[:10]
+    negative = sorted(characteristic_words, key=itemgetter(1))[:10]
+    print ('- Characteristic words of positive reviews')
+    pstr = ''
+    for word in positive:
+        print('\t' + word[0] + ' - ' + str(round(word[1], 3)))
+    print ('- Characteristic words of negative reviews')
+    nstr = ''
+    for word in negative:
+        print('\t' + word[0] + ' - ' + str(round(1/word[1], 3)))
+    minCount = minCount + step
+
+'''
+The experiment was repeat 5 times, starting with a threshold of 25, and increasing it by 25 each iteration.
+The results were as follows:
+25
+Positive - (bruno,muppet,kurtz,kermit,willard,granger,muppets,brynner,mario,anthony)
+Negative - (aztec,robot,heist,awful,julie,mummy,ocean,armored,waste,budget)
+50
+Positive - (bruno,muppet,kurtz,kermit,walker,hitchcock,excellent,game,murder,train)
+Negative - (mummy,house,worst,money,boring,bad,minutes,nothing,no,trying)
+75
+Positive - (bruno,hitchcock,mother,war,wife,performance,best,great,show,guy)
+Negative - (bad,minutes,no,looking,plot,even,?,then,thought,do)
+100
+Positive - (bruno,hitchcock,war,best,great,show,guy,still,most,us)
+Negative - (bad,no,plot,even,?,then,do,horror,watching,why)
+125
+Positive - (war,best,great,guy,most,also,love,now,many,man)
+Negative - (bad,no,plot,even,?,then,do,horror,only,n't)
+As it was to be expected, when the threshold is too small a lot of rare words appear at the top, which don't really give any insight on what's positive or negative.
+When the threshold increases, we begin to see the emergence of adjectives such as 'excellent', 'best' and 'great' for the positive reviews and 'worst', 'boring' and 'bad' for the negative ones.
+It's also interesting to note that even at higher thresholds words such as 'hitchcock' and 'war' continue to appear highly rated on positive reviews, and 'horror' appears on negative reviews.
+This could either mean that reviewers prefer these kind of movies, or point at the general quality of genres/director.
+'''
