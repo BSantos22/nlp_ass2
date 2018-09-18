@@ -1,4 +1,9 @@
 '''
+Assignment 2 by
+
+Bruno Miguel Vicente dos Santos (s2206250)
+David Rosenbusch (s2159724)
+
 R1
 The first review (snippet) is positive, however it focuses on the actors only.
 Issues for sentiment identification might be:
@@ -37,7 +42,10 @@ def normalize(text):
 
 ground_truth_file = sys.argv[1]
 results_file = sys.argv[2]
-classificationModel = sys.argv[3]
+try:
+    classificationModel = sys.argv[3]
+except IndexError:
+    classificationModel = "task5"
 
 unwantedTokens = [',', '.', ':', ';']
 minCount = 25
@@ -248,6 +256,22 @@ for ID in ground_truth_map:
 acc = float(correct)/len(ground_truth_map)
 summary = str(correct) + " out of " + str(len(ground_truth_map)) + " were correct!\naccuracy " + str(acc)+"\n"
 print(summary)
+'''
+Answer task 5:
+with k = 1.0 we get an accuracy of 0.76, with our chosen k = 0.37 we get 0.78
+'''
+
+
+'''
+Answer task 7:
+with k = 1.0 we get an accuracy of 0.64, with our chosen k = 0.01 we get 0.72
+We computed the probability of a review by taking the sum of the probabilities of all the bigrams (for positive / negative)
+The probability of a bigram is the number of occurrences (in positive / negative reviews) divided by the total number
+of occurrences. We also used smoothing again, just like in taks 5.
+
+Overall the accuracy of the classification was lower than in task 5, maybe due to the fact that we are dealing with a rather small
+dataset, where it is less likely to find many patterns of bigrams
+'''
 
 print("")
 print("")
@@ -299,4 +323,15 @@ As it was to be expected, when the threshold is too small a lot of rare words ap
 When the threshold increases, we begin to see the emergence of adjectives such as 'excellent', 'best' and 'great' for the positive reviews and 'worst', 'boring' and 'bad' for the negative ones.
 It's also interesting to note that even at higher thresholds words such as 'hitchcock' and 'war' continue to appear highly rated on positive reviews, and 'horror' appears on negative reviews.
 This could either mean that reviewers prefer these kind of movies, or point at the general quality of genres/director.
+'''
+
+'''
+Task 8 answer:
+
+The most obvious way of improving a classifier is giving it more training data while tweaking k.
+One could also compare in which cases the method using n-grams succeeds where the method using tokens fails (ans vice-versa)
+to maybe find a way of combining the strengths of both methods.
+For the method using tokens only it may be worth a try including a dictionary of words that are to be ignored,
+as they appear in both positive and negative reviews in roughly the same numbers and therefore do not provide any useful
+information.
 '''
