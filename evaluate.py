@@ -32,9 +32,6 @@ def normalize(text):
     return text.lower().replace(unwanted, "")
 
 
-k_smoothing = 0.37
-
-# Read in arguments
 ground_truth_file = sys.argv[1]
 results_file = sys.argv[2]
 
@@ -51,10 +48,15 @@ totalNumWordsN = 0
 totalNumWords = 0
 
 uniqueNGrams = [[set(),set()], [set(),set()], [set(),set()]]  # ngram
-bigramCount = {[]}
+bigramCount = {}
+totalNumBigramsP = 0
+totalNumBigramsN = 0
+totalNumBigrams = 0
 
 positiveProbabilities = {}
 negativeProbabilities = {}
+positiveProbabilitiesG = {}
+negativeProbabilitiesG = {}
 posReviews = [fi for fi in os.listdir("train/") if "P" in fi]
 negReviews = [fi for fi in os.listdir("train/") if "N" in fi]
 
@@ -76,27 +78,36 @@ for filename in os.listdir("train/"):
         for x in range(1, maxNGram+1):
             grams = nltk.ngrams(tokens, x)
 
-            if x == 2:
-                for gram in grams:
+            for gram in grams:
+                if x == 2:
                     if gram not in bigramCount:
                         bigramCount[gram] = [0, 0]
 
-                    if 'P' in filename:
-                        bigramCount[gram][0] += 1
-                    if 'N' in filename:
-                        bigramCount[gram][1] += 1
+                if 'P' in filename:
 
-            for gram in grams:
-                if "P" in filename:
-                    uniqueNGrams[x-1][0].add(gram)
-                else:
-                    uniqueNGrams[x-1][1].add(gram)
+                    if x == 2:
+                        bigramCount[gram][0] += 1
+                    uniqueNGrams[x - 1][0].add(gram)
+                if 'N' in filename:
+                    if x == 2:
+                        bigramCount[gram][1] += 1
+                    uniqueNGrams[x - 1][1].add(gram)
+
 # Only keep tokens that occur at least 25 times (Task 4)
 for tc in tokenCount:
     if tokenCount[tc][0]+tokenCount[tc][1] >= minCount:
         popTokens[tc] = tokenCount[tc]
 sortedTokens = sorted(popTokens.items(), key=operator.itemgetter(1), reverse=True)
 
+print(bigramCount)
+for gramsPN in bigramCount:
+    values = bigramCount[gramsPN]
+    totalNumBigrams += values[0] + values[1]
+    totalNumBigramsP += values[0]
+    totalNumBigramsN += values[1]
+
+print(str(totalNumBigrams) + " -> " + str(totalNumBigramsP) + " + " + str(totalNumBigramsN))
+print(len(uniqueNGrams[1][0])+len(uniqueNGrams[1][1]))
 
 for tok in popTokens:
     totalNumWordsP += popTokens[tok][0]
@@ -110,6 +121,7 @@ print(sortedTokens)
 print("Top 10 words:")
 for x in range(10):
     print(sortedTokens[x])
+    
 '''
 print("Rare words:")
 for tc in tokenCount:
@@ -117,6 +129,7 @@ for tc in tokenCount:
         print(tc + ": " + str(tokenCount[tc]))
 '''
 
+k_smoothing = 0.01
 
 # Task 5
 def probabilityOfWGivenReviews(word, reviewType):
@@ -135,6 +148,25 @@ for token in sortedTokens:
     if p != 0:
         negativeProbabilities[token[0]] = p
 
+
+# Task 7
+def probabilityOfWGivenReviewsG(g, reviewType):
+   # print("prob for " + str(g))
+    if reviewType == 'P':
+        return (bigramCount[g][0] + k_smoothing) / (totalNumBigramsP + k_smoothing * totalNumBigrams)
+    return (bigramCount[g][1] + k_smoothing) / (totalNumBigramsN + k_smoothing * totalNumBigrams)
+
+
+p = []
+for gr in bigramCount:
+    pp = probabilityOfWGivenReviewsG(gr, 'P')
+    if pp != 0:
+        positiveProbabilitiesG[gr] = pp
+
+    pn = probabilityOfWGivenReviewsG(gr, 'N')
+    if pn != 0:
+        negativeProbabilitiesG[gr] = pn
+
 print("total #words p: "+str(totalNumWordsP))
 print("total #words n: "+str(totalNumWordsN))
 print("positive probs:")
@@ -142,26 +174,45 @@ print(positiveProbabilities)
 print("negative probs:")
 print(negativeProbabilities)
 
+
+def classifyTask5(tks):
+    probs = [0.0, 0.0]  # p,n
+    for to in tks:
+        if to in positiveProbabilities:
+            probs[0] += math.log(positiveProbabilities[to])
+        if to in negativeProbabilities:
+            probs[1] += math.log(negativeProbabilities[to])
+    return probs
+
+
+def classifyTask7(tks):
+    probs = [0.0, 0.0]  # p,n
+    grms = nltk.ngrams(tks, 2)
+    if tks[0] in positiveProbabilities:
+        probs[0] += math.log(positiveProbabilities[tks[0]])
+    elif tks[0] in negativeProbabilities:
+        probs[1] += math.log(negativeProbabilities[tks[0]])
+
+    for g in grms:
+        if g in bigramCount:
+            if g in positiveProbabilitiesG:
+                probs[0] += math.log(positiveProbabilitiesG[g])
+            if g in negativeProbabilitiesG:
+                probs[1] += math.log(negativeProbabilitiesG[g])
+
+    return probs
+
+
 preds = []
 for filename in os.listdir("test/"):
     probs = [0.0, 0.0]  # p,n
     with open("test/" + filename, 'r') as myfile:
         reviewText = normalize(myfile.read())
         tks = nltk.word_tokenize(reviewText)
-        grms = nltk.ngrams(tks, 2)
 
-        for t in tks:
-            if t in positiveProbabilities:
-                probs[0] += math.log(positiveProbabilities[t])
-            if t in negativeProbabilities:
-                probs[1] += math.log(negativeProbabilities[t])
+        probs = classifyTask7(tks)
+        #probs = classifyTask5(tks)
 
-        '''
-        for t in tks:
-            if t in positiveProbabilities:
-                probs[0] += math.log(positiveProbabilities[t])
-            if t in negativeProbabilities:
-                probs[1] += math.log(negativeProbabilities[t])'''
     if probs[0] < probs[1]:
         dclass = "N"
     else:
@@ -186,5 +237,6 @@ for ID in ground_truth_map:
         print("Incorrect " + ID)
 
 # Print summary
-print(str(correct) + " out of " + str(len(ground_truth_map)) + " were correct!")
-print("accuracy " + str(float(correct)/len(ground_truth_map)))
+acc = float(correct)/len(ground_truth_map)
+summary = "For k = " + str(k_smoothing) + ": " + str(correct) + " out of " + str(len(ground_truth_map)) + " were correct!\naccuracy " + str(acc)+"\n"
+print(summary)
